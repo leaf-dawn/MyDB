@@ -1,21 +1,19 @@
-/*
-   logger 负责日志文件的读写.
-
-   日志文件的整体格式如下:
-   [XChecksum] [Log1] [Log2] ... [LogN] [BadTail]
-
-   其中[BadTail]表示的是最后一条错误的日志, 当然, 有可能并不存在[BadTail].
-   [XChecksum] 表示的是对Log1到LogN的所有日志计算的Checksum. 类型为uint32.
-
-   	每条日志的二进制格式如下:
-   	[Checksum] uint32 4bytes // 该条记录的Checksum, 计算过程只包含data
-   	[Size] uint32 4bytes // 仅包含data部分
-   	[Data] size
-
-    每次插入一条Log后, 就会对XChecksum做一次更新.
-    由于"插入Log->更新XChecksum"这个过程不能保证原子性, 所以如果在期间发生了错误, 那么整个
-    日志文件将会被判断为失效.
-*/
+//    logger 负责日志文件的读写.
+//
+//   日志文件的整体格式如下:
+//   [XChecksum] [Log1] [Log2] ... [LogN] [BadTail]
+//
+//   其中[BadTail]表示的是最后一条错误的日志, 当然, 有可能并不存在[BadTail].
+//   [XChecksum] 表示的是对Log1到LogN的所有日志计算的Checksum. 类型为uint32.
+//
+//   	每条日志的二进制格式如下:
+//   	[Checksum] uint32 4bytes // 该条记录的Checksum, 计算过程只包含data
+//   	[Size] uint32 4bytes // 仅包含data部分
+//   	[Data] size
+//
+//    每次插入一条Log后, 就会对XChecksum做一次更新.
+//    由于"插入Log->更新XChecksum"这个过程不能保证原子性, 所以如果在期间发生了错误, 那么整个
+//    日志文件将会被判断为失效.
 package logger
 
 import (
@@ -48,7 +46,7 @@ const (
 )
 
 type logger struct {
-	file *os.File
+	file *os.File //日志文件
 	lock sync.Mutex
 
 	pos       int64 // 当前日志指针的位置

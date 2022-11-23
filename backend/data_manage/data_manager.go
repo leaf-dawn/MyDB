@@ -28,8 +28,8 @@ type DataManager interface {
 
 type dataManager struct {
 	tm tm.TransactionManager // tm主要用于恢复时使用
-	pc pcacher.Pcacher
-	lg logger.Logger
+	pc pcacher.Pcacher       //页缓存
+	lg logger.Logger         //日志记录
 
 	pidx pindex.Pindex
 	dic  cacher.Cacher // dataitem的cache
