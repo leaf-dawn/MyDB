@@ -12,14 +12,15 @@ package data_manage
 import "briefDb/backend/data_manage/pcacher"
 
 const (
-	_PX_OF_FREE = 0
-	_PX_OF_DATA = 2
+	_PX_OF_FREE = 0 //页内空闲空间偏移
+	_PX_OF_DATA = 2 //页内数据偏移
 )
 
 // PXInitData 返回创建普通页时的初始内容
 func PXInitRaw() []byte {
 	raw := make([]byte, pcacher.PAGE_SIZE)
-	pxRawUpdateFSO(raw, _PX_OF_DATA) // 初始时将FSO初始化为DATA的位移
+	// 初始时将FSO初始化为DATA的位移
+	pxRawUpdateFSO(raw, _PX_OF_DATA)
 	return raw
 }
 
@@ -45,8 +46,10 @@ func pxRawUpdateFSO(raw []byte, offset Offset) {
 // PXInsert 将raw插入到pg这一页内, 并返回插入的位移
 func PXInsert(pg pcacher.Page, raw []byte) Offset {
 	pg.Dirty()
+	//在空闲位置以后写入数据
 	offset := pxRawFSO(pg.Data())
 	copy(pg.Data()[offset:], raw)
+	//更新空闲指针
 	pxRawUpdateFSO(pg.Data(), offset+Offset(len(raw)))
 	return offset
 }

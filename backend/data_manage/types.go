@@ -19,7 +19,7 @@ func Address2UUID(pgno pcacher.Pgno, offset Offset) utils.UUID {
 	return utils.UUID((u0 << 32) | u1)
 }
 
-type Offset uint16
+type Offset uint16 //定义偏移量，该偏移量是页内空闲位置的偏移
 
 const LEN_OFFSET = 4
 

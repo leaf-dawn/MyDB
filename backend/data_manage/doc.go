@@ -1,6 +1,8 @@
 /*
    DM的理论模型请参考 https://qw4990.gitbooks.io/nyadb/content
-
+   logger: 日志管理
+   pcacher: 页的缓存
+   pindex: 页空闲空间记录
    DM实现的模型为:
                 [DM] <--抽象出--> [Dataitem]
         +---------+--------+
