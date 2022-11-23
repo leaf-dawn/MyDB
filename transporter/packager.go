@@ -38,7 +38,8 @@ func (p *packager) Close() error {
 	return p.transporter.Close()
 }
 
-//把数和错误做成包发送
+//把数和错误做成包发
+//即传输对象
 type Package interface {
 	Data() []byte
 	Err() error

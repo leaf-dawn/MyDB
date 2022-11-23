@@ -1,6 +1,8 @@
 /*
-   RoundTripper 模拟一次收发包的过程
-*/
+ *  RoundTripper 模拟一次收发包的过程
+ * 包裹了packager,通过，是否有必要？
+ * 可以理解为一个适配器，一个插槽。更灵活
+ */
 package client
 
 import "briefDb/transporter"

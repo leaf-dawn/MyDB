@@ -1,21 +1,9 @@
-/*
-   client实现了客户端的API和命令行UI
+//
+//client是提供给用户的一个api，可以直接使用。
+//也可以通过main启动，通过命令行进行调用。
+//shell -> client -> roundTripper(内部需要使用到transporter包进行发送接收)
+//
 
-   大概结构为:
-        [shell]       [user process]
-            |              |
-            v              |
-        [client] <---------+
-            |
-            v
-      [RoundTripper]
-
-    shell为用户提供了一个简单的命令行形式的UI.
-    当然你也可以不用shell, 自己编写程序, 然后调用client作为访问数据库的API.
-    client将需要数据库执行的指令打包, 并传递给RoundTripper.
-    RoundTripper进行一次包的"发送->接受"工作.
-    RoundTripper依赖于transporter包.
-*/
 package client
 
 import "briefDb/transporter"

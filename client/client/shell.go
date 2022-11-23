@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+//
+//shell命令行，用户可以通过shell来使用命令行发送命令
+//
 type Shell interface {
 	Run()
 }
@@ -22,10 +25,11 @@ func NewShell(client Client) *shell {
 
 func (s *shell) Run() {
 	defer s.client.Close()
-
+	// 含有缓冲区的io读取的包。提高效率
 	termReader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print(":> ")
+		//读取到换行\n
 		line, err := termReader.ReadBytes('\n')
 		stat := line[:len(line)-1]
 		if err != nil {
@@ -41,7 +45,7 @@ func (s *shell) Run() {
 		if string(stat) == "exit" || string(stat) == "quit" {
 			break
 		}
-
+		//通过client执行用户指令
 		result, err := s.client.Execute(stat)
 		if err != nil {
 			fmt.Println("Err: ", err)
