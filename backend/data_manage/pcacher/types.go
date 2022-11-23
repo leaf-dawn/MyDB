@@ -2,7 +2,7 @@ package pcacher
 
 import "briefDb/backend/utils"
 
-type Pgno uint32
+type Pgno uint32 //页号
 
 const (
 	LEN_PGNO = 4

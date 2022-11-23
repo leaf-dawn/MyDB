@@ -18,8 +18,8 @@ var (
 )
 
 const (
-	PAGE_SIZE = 1 << 13
-	_MEM_LIM  = 10
+	PAGE_SIZE = 1 << 13 //一个页大小
+	_MEM_LIM  = 10      //页缓存的数目
 
 	SUFFIX_DB = ".db"
 )
@@ -46,14 +46,17 @@ type Pcacher interface {
 }
 
 type pcacher struct {
-	file     *os.File
+	file     *os.File //缓存的文件
 	fileLock sync.Mutex
 
-	noPages uint32
+	noPages uint32 //文件中页的数目
 
 	c cacher.Cacher
 }
 
+//创建一个文件，并对文件进行页缓存
+//path:文件路径
+// mem:缓存大小
 func Create(path string, mem int64) *pcacher {
 	file, err := os.OpenFile(path+SUFFIX_DB, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -63,6 +66,7 @@ func Create(path string, mem int64) *pcacher {
 	return newPcacher(file, mem)
 }
 
+//打开一个文件，并对文件进行页缓存
 func Open(path string, mem int64) *pcacher {
 	file, err := os.OpenFile(path+SUFFIX_DB, os.O_RDWR, 0600)
 	if err != nil {
@@ -83,15 +87,16 @@ func newPcacher(file *os.File, mem int64) *pcacher {
 	}
 	size := info.Size()
 
+	//在options添加到cacher
 	p := new(pcacher)
 	options := new(cacher.Options)
 	options.Get = p.getForCacher
-	options.MaxHandles = uint32(mem / PAGE_SIZE)
+	options.MaxHandles = uint32(mem / PAGE_SIZE) //设置资源数
 	options.Release = p.releaseForCacher
 	c := cacher.NewCacher(options)
 	p.c = c
 	p.file = file
-	p.noPages = uint32(size / PAGE_SIZE)
+	p.noPages = uint32(size / PAGE_SIZE) //获取文件页的总数
 
 	return p
 }
@@ -152,10 +157,12 @@ func (p *pcacher) release(pg *page) {
 // 因为flush为被release调用, 所以flush也必须是支持并发的.
 func (p *pcacher) flush(pg *page) {
 	pgno := pg.pgno
+	// 计算在磁盘中的偏移量
 	offset := pageOffset(pgno)
 
 	p.fileLock.Lock()
 	defer p.fileLock.Unlock()
+	// 写入文件并刷新
 	_, err := p.file.WriteAt(pg.data, offset)
 	if err != nil {
 		panic(err) // 如果DB文件出现了问题, 那么直接结束.
