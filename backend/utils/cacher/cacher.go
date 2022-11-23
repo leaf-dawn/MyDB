@@ -25,7 +25,7 @@ type Cacher interface {
 
 	//获取缓存里的资源
 	Get(uid utils.UUID) (interface{}, error)
-	//释放id未uid的资源
+	//释放id为uid的资源
 	Release(uid utils.UUID)
 	//全部关闭
 	Close()
@@ -43,6 +43,7 @@ type Options struct {
 	MaxHandles uint32
 }
 
+//todo:是否可以用go并发实现
 type cacher struct {
 	options *Options
 

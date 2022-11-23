@@ -1,6 +1,9 @@
 package data_manage
 
-import "errors"
+import (
+	"briefDb/backend/utils"
+	"errors"
+)
 
 //定义一些错误
 var (
@@ -9,5 +12,6 @@ var (
 )
 
 type DataManager interface {
-	Read(uid)
+	Read(uid utils.UUID) (Dataitem, bool, error)
+	Insert(xid tm.XID)
 }
