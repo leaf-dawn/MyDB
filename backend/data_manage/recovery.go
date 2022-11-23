@@ -1,13 +1,13 @@
 /*
    recover.go 对数据库进行恢复, 恢复的具体策略见protocols/recovery.go
 */
-package dm
+package data_manage
 
 import (
-	"nyadb2/backend/dm/logger"
-	"nyadb2/backend/dm/pcacher"
-	"nyadb2/backend/tm"
-	"nyadb2/backend/utils"
+	"briefDb/backend/data_manage/logger"
+	"briefDb/backend/data_manage/pcacher"
+	tm "briefDb/backend/transaction_manage"
+	"briefDb/backend/utils"
 )
 
 const (

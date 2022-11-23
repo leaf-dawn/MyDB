@@ -2,16 +2,16 @@
 	data_manager.go 实现了DM, 它实现了对磁盘文件的管理.
 	它在磁盘文件的基础上抽象出了"数据项"的概念, 并保证了数据库的可恢复性.
 */
-package dm
+package data_manage
 
 import (
+	"briefDb/backend/data_manage/logger"
+	"briefDb/backend/data_manage/pcacher"
+	"briefDb/backend/data_manage/pindex"
+	tm "briefDb/backend/transaction_manage"
+	"briefDb/backend/utils"
+	"briefDb/backend/utils/cacher"
 	"errors"
-	"nyadb2/backend/dm/logger"
-	"nyadb2/backend/dm/pcacher"
-	"nyadb2/backend/dm/pindex"
-	"nyadb2/backend/tm"
-	"nyadb2/backend/utils"
-	"nyadb2/backend/utils/cacher"
 )
 
 var (

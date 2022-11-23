@@ -24,4 +24,4 @@
   Pindex管理的是(Pgno, FreeSpace)的键值对, 使得DM在执行插入操作时, 能够快速的选出合适大小
   的页, 将数据插入其中. Pindex全部被维护在内存中.
 */
-package dm
+package data_manage

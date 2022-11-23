@@ -11,12 +11,12 @@
 		这样, 在每次重启时, 都检验两个区间内的值是否一致, 如果不一致, 则说明上次为正常结束,
 		则对数据库进行恢复.
 */
-package dm
+package data_manage
 
 import (
+	"briefDb/backend/data_manage/pcacher"
+	"briefDb/backend/utils"
 	"bytes"
-	"nyadb2/backend/dm/pcacher"
-	"nyadb2/backend/utils"
 )
 
 const (

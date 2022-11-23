@@ -12,8 +12,8 @@
 package pindex
 
 import (
+	"briefDb/backend/data_manage/pcacher"
 	"container/list"
-	"nyadb2/backend/dm/pcacher"
 	"sync"
 )
 

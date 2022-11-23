@@ -1,12 +1,12 @@
 /*
    mock_dm 将全部的数据存于内存.
 */
-package dm
+package data_manage
 
 import (
+	tm "briefDb/backend/transaction_manage"
+	"briefDb/backend/utils"
 	"math/rand"
-	"nyadb2/backend/tm"
-	"nyadb2/backend/utils"
 	"sync"
 )
 

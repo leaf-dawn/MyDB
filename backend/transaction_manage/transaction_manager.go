@@ -6,36 +6,45 @@ import (
 )
 
 /**
-  文件头部记录事务id的数量
+  用于管理事务的文件。
   某事务byte的位移为(xid - 1)*_XID_FIELD_SIZE + XID_FILE_HEADER_SIZE。
-  其中xid － 1是因为事务xid从1开始标号。
-
+  1. 其中xid － 1是因为事务xid从1开始标号。
+  2. XID_FILE_HEADER_SIZE用于存储事务信息
+  3. head以后，每一个字节都用来存储一个事务状态。
+  4. 文件结构如下
   | 8字节长度存储事务数量 | {一个字节长度的事务信息}{}{}{}  |
 */
 
 const (
-	_XID_FILE_HEADER_SIZE = 8 //文件元信息的信息长度
-	_XID_FIELD_SIZE       = 1 //事务长度
+	_XID_FILE_HEADER_SIZE = LEN_XID //文件元信息的信息长度
+	_XID_FIELD_SIZE       = 1       //事务长度
 
-	_FIELD_TRAN_ACTIVE   = 0 //事务状态
-	_FIELD_TRAN_COMMITED = 1
-	_FIELD_TRAN_ABORTED  = 2
+	_FIELD_TRAN_ACTIVE   = 0 //事务状态，事务进行中
+	_FIELD_TRAN_COMMITED = 1 //事务提交
+	_FIELD_TRAN_ABORTED  = 2 //事务回滚
 
 	XID_FILE_TYPE = ".xid"
 )
 
 type TransactionManager interface {
+	//启动事务
 	Begin() XID
+	//提交事务
 	Commit(xid XID)
+	//事务回滚
 	Abort(xid XID)
+	//检验事务是否正在进行
 	IsActive(xid XID) bool
+	//是否提交
 	IsCommitted(xid XID) bool
+	//是否回滚
 	IsAborted(xid XID) bool
+	//封闭，需要关闭文件
 	Close()
 }
 
 type transactionManager struct {
-	file        *os.File
+	file        *os.File   //存储事务的文件
 	xidCounter  XID        //数量
 	counterLock sync.Mutex //互斥锁
 }
@@ -51,6 +60,7 @@ func Create(path string) *transactionManager {
 		panic(err)
 	}
 	xidCounterInit := make([]byte, LEN_XID)
+	//给文件设置空文件头
 	_, err = file.WriteAt(xidCounterInit, 0)
 	if err != nil {
 		panic(err)
@@ -87,17 +97,19 @@ func (tm *transactionManager) checkXIDCounter() {
 	if err != nil {
 		panic(err)
 	}
+	//如果文件大小比header还要小，显然不符合要求
 	if state.Size() < _XID_FILE_HEADER_SIZE {
 		panic(ErrBadXIDFile)
 	}
+	//读取header到temp
 	tmp := make([]byte, _XID_FILE_HEADER_SIZE)
 	_, err = tm.file.ReadAt(tmp, 0)
 	if err != nil {
 		panic(err)
 	}
-	//获取数量，也是最后一个xid
+	//读取xid数目，即header，这里header只存了数目
 	tm.xidCounter = ParseXID(tmp)
-	//获取最后一个xid位置
+	//理想状态下，最后一个xid位置。
 	lastXIDPosition, _ := xidPosition(tm.xidCounter)
 	//判断真实文件长度是否等于计算出来的文件长度
 	if lastXIDPosition+_XID_FIELD_SIZE != state.Size() {
@@ -115,7 +127,7 @@ func xidPosition(xid XID) (int64, int) {
 //让xid数量递增，注意，是不安全的，更新文件头部时
 func (t *transactionManager) increaseXIDCounter() {
 	t.xidCounter++
-	buf := XIDToRaw(t.xidCounter, _XID_FILE_HEADER_SIZE)
+	buf := XIDToRaw(t.xidCounter)
 	_, err := t.file.WriteAt(buf, 0)
 	if err != nil {
 		panic(err)

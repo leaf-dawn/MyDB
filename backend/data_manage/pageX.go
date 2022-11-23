@@ -7,9 +7,9 @@
 
    [Free Space Offset] 表示空闲空间的位置指针.
 */
-package dm
+package data_manage
 
-import "nyadb2/backend/dm/pcacher"
+import "briefDb/backend/data_manage/pcacher"
 
 const (
 	_PX_OF_FREE = 0
