@@ -58,9 +58,11 @@ const (
 )
 
 type dataitem struct {
-	raw    []byte
+	// dataitem中的数据
+	raw []byte
+	// 旧数据，用于回滚的
 	oldraw []byte
-
+	// 解决并发的锁
 	rwlock sync.RWMutex
 
 	dm  *dataManager

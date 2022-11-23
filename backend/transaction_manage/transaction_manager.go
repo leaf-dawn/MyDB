@@ -26,22 +26,24 @@ const (
 	XID_FILE_TYPE = ".xid"
 )
 
-type TransactionManager interface {
-	//启动事务
-	Begin() XID
-	//提交事务
-	Commit(xid XID)
-	//事务回滚
-	Abort(xid XID)
-	//检验事务是否正在进行
-	IsActive(xid XID) bool
-	//是否提交
-	IsCommitted(xid XID) bool
-	//是否回滚
-	IsAborted(xid XID) bool
-	//封闭，需要关闭文件
-	Close()
-}
+type (
+	TransactionManager interface {
+		// Begin 启动事务
+		Begin() XID
+		// Commit 提交事务
+		Commit(xid XID)
+		// Abort 事务回滚
+		Abort(xid XID)
+		// IsActive 检验事务是否正在进行
+		IsActive(xid XID) bool
+		// IsCommitted 是否提交
+		IsCommitted(xid XID) bool
+		// IsAborted 是否回滚
+		IsAborted(xid XID) bool
+		// Close 封闭，需要关闭文件
+		Close()
+	}
+)
 
 type transactionManager struct {
 	file        *os.File   //存储事务的文件

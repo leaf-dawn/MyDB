@@ -1,8 +1,7 @@
-/*
-   pcacher 实现了对页的缓存.
-   实际上pcacher已经将缓存的逻辑托管给了cacher.Cacher了.
-   所以在pcacher中, 只需要实现对磁盘操作的部分逻辑.
-*/
+// Package pcacher
+//   pcacher 实现了对页的缓存.
+//   实际上pcacher已经将缓存的逻辑托管给了cacher.Cacher了.
+//   所以在pcacher中, 只需要实现对磁盘操作的部分逻辑.
 package pcacher
 
 import (

@@ -17,9 +17,15 @@ var (
 	_TIME_WAIT = time.Millisecond
 )
 
+//
+// 对options操作的数据加上一层缓存
+//
 type Cacher interface {
+	// 根据uid获取数据
 	Get(uid utils.UUID) (interface{}, error)
+	// 根据uid回收数据
 	Release(uid utils.UUID)
+	// 关闭并刷新磁盘
 	Close()
 }
 
@@ -48,14 +54,15 @@ type cacher struct {
 	options *Options
 
 	cache   map[utils.UUID]interface{}
-	refs    map[utils.UUID]uint32
-	getting map[utils.UUID]bool // 该map表示正在拿去, 但还未成功的资源.
-	count   uint32              // cache中handle个数
-	lock    sync.Mutex          // lock保护了上面所有变量
+	refs    map[utils.UUID]uint32 //记录一个缓存记录被访问的次数
+	getting map[utils.UUID]bool   // 该map表示正在拿去, 但还未成功的资源.
+	count   uint32                // cache中handle个数
+	lock    sync.Mutex            // lock保护了上面所有变量
 }
 
 func (c *cacher) Get(uid utils.UUID) (interface{}, error) {
 	for {
+		// 循环读取锁，保证安全
 		c.lock.Lock()
 		if _, ok := c.getting[uid]; ok {
 			// 如果请求的资源正在被其他线程获取, 则等待那个线程获取结束.
@@ -72,7 +79,7 @@ func (c *cacher) Get(uid utils.UUID) (interface{}, error) {
 			return h, nil
 		}
 
-		// 否则, 则尝试获取该资源
+		// 否则, 则尝试获取该资源，todo：是否有换入换出操作。
 		if c.options.MaxHandles > 0 && c.count == c.options.MaxHandles {
 			// 资源数已经满
 			c.lock.Unlock()
@@ -88,6 +95,7 @@ func (c *cacher) Get(uid utils.UUID) (interface{}, error) {
 	// 注意调用options.Get时是无锁的, 因此能够和其他的Get并发进行.
 	// 这也要求options.Get是并发安全的.
 	underlying, err := c.options.Get(uid)
+	//数据获取失败，减少数据
 	if err != nil {
 		c.lock.Lock()
 		c.count--
@@ -95,7 +103,6 @@ func (c *cacher) Get(uid utils.UUID) (interface{}, error) {
 		c.lock.Unlock()
 		return nil, err
 	}
-
 	c.lock.Lock()
 	delete(c.getting, uid)
 	c.cache[uid] = underlying
