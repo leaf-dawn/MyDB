@@ -203,7 +203,7 @@ func (dm *dataManager) Read(uid utils.UUID) (Dataitem, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	di := h.(*dataitem)
+	di := h.(*dataItem)
 	if di.IsValid() == false { // 如果dataitem为非法, 则进行拦截, 返回空值
 		di.Release()
 		return nil, false, nil
@@ -218,20 +218,20 @@ func (dm *dataManager) getForCacher(uid utils.UUID) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ParseDataitem(pg, offset, dm), nil
+	return ParseDataItem(pg, offset, dm), nil
 }
 
 func (dm *dataManager) releaseForCacher(h interface{}) {
-	di := h.(*dataitem)
+	di := h.(*dataItem)
 	di.pg.Release()
 }
 
 // logDataitem 为di生成Update日志.
-func (dm *dataManager) logDataitem(xid tm.XID, di *dataitem) {
+func (dm *dataManager) logDataitem(xid tm.XID, di *dataItem) {
 	log := UpdateLog(xid, di)
 	dm.lg.Log(log)
 }
 
-func (dm *dataManager) ReleaseDataitem(di *dataitem) {
+func (dm *dataManager) ReleaseDataitem(di *dataItem) {
 	dm.dic.Release(di.uid)
 }

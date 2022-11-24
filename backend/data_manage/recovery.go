@@ -127,7 +127,7 @@ func isInsertLog(log []byte) bool {
 	[Log Type] [XID] [UUID] [OldRaw] [NewRaw]
 	表示XID将UUID这个dataitem从OldRaw更新为了NewRaw.
 */
-func UpdateLog(xid tm.XID, di *dataitem) []byte {
+func UpdateLog(xid tm.XID, di *dataItem) []byte {
 	log := make([]byte, 1+tm.LEN_XID+utils.LEN_UUID+len(di.raw)*2)
 	pos := 0
 	log[pos] = _LOG_TYPE_UPDATE
@@ -223,7 +223,7 @@ func doInsertLog(pc pcacher.Pcacher, log []byte, flag int) {
 	}
 	defer pg.Release()
 	if flag == _UNDO { // 如果为UNDO, 则把该dataitem标记为非法.
-		InValidRawDataitem(raw)
+		InValidRawDataItem(raw)
 	}
 	PXRecoverInsert(pg, offset, raw)
 }

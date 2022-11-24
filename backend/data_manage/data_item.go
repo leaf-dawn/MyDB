@@ -57,7 +57,7 @@ const (
 	_OF_DATA       = 3
 )
 
-type dataitem struct {
+type dataItem struct {
 	// dataitem中的数据
 	raw []byte
 	// 旧数据，用于回滚的
@@ -70,6 +70,7 @@ type dataitem struct {
 	pg  pcacher.Page
 }
 
+// WrapDataitemRaw 将data转换成dataitem的数组格式即 [data] -> [valid, size, data]
 func WrapDataitemRaw(data []byte) []byte {
 	raw := make([]byte, _OF_DATA+len(data))
 	utils.PutUint16(raw[_OF_DATA_SIZE:], uint16(len(data)))
@@ -79,18 +80,19 @@ func WrapDataitemRaw(data []byte) []byte {
 
 // UnValidRawDataitem 将raw表示的Dataitem标记为非法.
 // 该函数只会被Recovery调用.
-func InValidRawDataitem(raw []byte) {
+func InValidRawDataItem(raw []byte) {
 	raw[_OF_VALID_FLAG] = byte(1)
 }
 
-// ParseDataitem 从pg的offset位移处, 解析出对应的dataitem
-func ParseDataitem(pg pcacher.Page, offset Offset, dm *dataManager) *dataitem {
+// ParseDataItem 从pg的offset位移处, 解析出对应的dataitem
+func ParseDataItem(pg pcacher.Page, offset Offset, dm *dataManager) *dataItem {
 	raw := pg.Data()[offset:]
 	size := utils.ParseUint16(raw[_OF_DATA_SIZE:])
 	length := size + _OF_DATA
+	// 所属页号拼接上页内偏移作为dataItem的id
 	uid := Address2UUID(pg.Pgno(), offset)
 
-	di := &dataitem{
+	di := &dataItem{
 		raw:    raw[:length],
 		oldraw: make([]byte, length),
 		pg:     pg,
@@ -100,41 +102,41 @@ func ParseDataitem(pg pcacher.Page, offset Offset, dm *dataManager) *dataitem {
 	return di
 }
 
-func (di *dataitem) IsValid() bool {
+func (di *dataItem) IsValid() bool {
 	return di.raw[_OF_VALID_FLAG] == byte(0)
 }
 
-func (di *dataitem) Data() []byte {
+func (di *dataItem) Data() []byte {
 	return di.raw[_OF_DATA:]
 }
-func (di *dataitem) UUID() utils.UUID {
+func (di *dataItem) UUID() utils.UUID {
 	return di.uid
 }
-func (di *dataitem) Before() {
+func (di *dataItem) Before() {
 	di.rwlock.Lock()
 	di.pg.Dirty()
 	copy(di.oldraw, di.raw)
 }
-func (di *dataitem) UnBefore() {
+func (di *dataItem) UnBefore() {
 	copy(di.raw, di.oldraw)
 	di.rwlock.Unlock()
 }
-func (di *dataitem) After(xid tm.XID) {
+func (di *dataItem) After(xid tm.XID) {
 	di.dm.logDataitem(xid, di)
 	di.rwlock.Unlock()
 }
-func (di *dataitem) Release() {
+func (di *dataItem) Release() {
 	di.dm.ReleaseDataitem(di)
 }
-func (di *dataitem) Lock() {
+func (di *dataItem) Lock() {
 	di.rwlock.Lock()
 }
-func (di *dataitem) Unlock() {
+func (di *dataItem) Unlock() {
 	di.rwlock.Unlock()
 }
-func (di *dataitem) RLock() {
+func (di *dataItem) RLock() {
 	di.rwlock.RLock()
 }
-func (di *dataitem) RUnlock() {
+func (di *dataItem) RUnlock() {
 	di.rwlock.RUnlock()
 }
