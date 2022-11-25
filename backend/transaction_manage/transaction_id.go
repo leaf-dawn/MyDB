@@ -7,17 +7,17 @@ import "briefDb/backend/utils"
 type TransactionID utils.UUID
 
 const (
-	LEN_XID   = utils.LEN_UUID
-	SUPER_XID = 0 //xid无效值，nil,xid从1开始
+	LEN_TRANSACTION_ID   = utils.LEN_UUID
+	SUPER_TRANSACTION_ID = 0 //xid无效值，nil,xid从1开始
 )
 
-//添加xid到byte数组
-func PutXID(buf []byte, xid TransactionID) {
+//添加transactionID到byte数组
+func PutTransactionID(buf []byte, xid TransactionID) {
 	utils.PutUUID(buf, utils.UUID(xid))
 }
 
 //从raw中读取xid
-func ParseXID(raw []byte) TransactionID {
+func ParseTransactionID(raw []byte) TransactionID {
 	return TransactionID(utils.ParseUUID(raw))
 }
 

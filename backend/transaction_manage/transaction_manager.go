@@ -16,8 +16,8 @@ import (
 */
 
 const (
-	_XID_FILE_HEADER_SIZE = LEN_XID //文件元信息的信息长度
-	_XID_FIELD_SIZE       = 1       //事务长度
+	_XID_FILE_HEADER_SIZE = LEN_TRANSACTION_ID //文件元信息的信息长度
+	_XID_FIELD_SIZE       = 1                  //事务长度
 
 	_FIELD_TRAN_ACTIVE   = 0 //事务状态，事务进行中
 	_FIELD_TRAN_COMMITED = 1 //事务提交
@@ -61,7 +61,7 @@ func Create(path string) *transactionManager {
 	if err != nil {
 		panic(err)
 	}
-	xidCounterInit := make([]byte, LEN_XID)
+	xidCounterInit := make([]byte, LEN_TRANSACTION_ID)
 	//给文件设置空文件头
 	_, err = file.WriteAt(xidCounterInit, 0)
 	if err != nil {
@@ -110,7 +110,7 @@ func (tm *transactionManager) checkXIDCounter() {
 		panic(err)
 	}
 	//读取xid数目，即header，这里header只存了数目
-	tm.xidCounter = ParseXID(tmp)
+	tm.xidCounter = ParseTransactionID(tmp)
 	//理想状态下，最后一个xid位置。
 	lastXIDPosition, _ := xidPosition(tm.xidCounter)
 	//判断真实文件长度是否等于计算出来的文件长度
@@ -191,7 +191,7 @@ func (t *transactionManager) checkXID(xid TransactionID, state int) bool {
 }
 
 func (t *transactionManager) IsActive(xid TransactionID) bool {
-	if xid == SUPER_XID {
+	if xid == SUPER_TRANSACTION_ID {
 		return false
 	}
 	return t.checkXID(xid, _FIELD_TRAN_ACTIVE)
@@ -199,14 +199,14 @@ func (t *transactionManager) IsActive(xid TransactionID) bool {
 
 //todo:为什么为super_xid时返回true
 func (t *transactionManager) IsCommitted(xid TransactionID) bool {
-	if xid == SUPER_XID {
+	if xid == SUPER_TRANSACTION_ID {
 		return true
 	}
 	return t.checkXID(xid, _FIELD_TRAN_COMMITED)
 }
 
 func (t *transactionManager) IsAborted(xid TransactionID) bool {
-	if xid == SUPER_XID {
+	if xid == SUPER_TRANSACTION_ID {
 		return false
 	}
 	return t.checkXID(xid, _FIELD_TRAN_ABORTED)
