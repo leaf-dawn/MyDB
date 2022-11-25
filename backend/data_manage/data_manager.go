@@ -20,7 +20,7 @@ var (
 )
 
 type DataManager interface {
-	Read(uid utils.UUID) (Dataitem, bool, error)
+	Read(uid utils.UUID) (DataItem, bool, error)
 	Insert(xid tm.XID, data []byte) (utils.UUID, error)
 
 	Close()
@@ -198,7 +198,7 @@ func (dm *dataManager) Insert(xid tm.XID, data []byte) (utils.UUID, error) {
 	return Address2UUID(pgno, offset), nil
 }
 
-func (dm *dataManager) Read(uid utils.UUID) (Dataitem, bool, error) {
+func (dm *dataManager) Read(uid utils.UUID) (DataItem, bool, error) {
 	h, err := dm.dic.Get(uid)
 	if err != nil {
 		return nil, false, err

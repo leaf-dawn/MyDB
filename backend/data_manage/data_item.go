@@ -25,7 +25,7 @@ import (
 	"sync"
 )
 
-type Dataitem interface {
+type DataItem interface {
 	Data() []byte     // Data 以共享形式返回该dataitem的数据内容
 	UUID() utils.UUID // Handle 返回该dataitem的handle
 
