@@ -29,26 +29,26 @@ const (
 type (
 	TransactionManager interface {
 		// Begin 启动事务
-		Begin() XID
+		Begin() TransactionID
 		// Commit 提交事务
-		Commit(xid XID)
+		Commit(xid TransactionID)
 		// Abort 事务回滚
-		Abort(xid XID)
+		Abort(xid TransactionID)
 		// IsActive 检验事务是否正在进行
-		IsActive(xid XID) bool
+		IsActive(xid TransactionID) bool
 		// IsCommitted 是否提交
-		IsCommitted(xid XID) bool
+		IsCommitted(xid TransactionID) bool
 		// IsAborted 是否回滚
-		IsAborted(xid XID) bool
+		IsAborted(xid TransactionID) bool
 		// Close 封闭，需要关闭文件
 		Close()
 	}
 )
 
 type transactionManager struct {
-	file        *os.File   //存储事务的文件
-	xidCounter  XID        //数量
-	counterLock sync.Mutex //互斥锁
+	file        *os.File      //存储事务的文件
+	xidCounter  TransactionID //数量
+	counterLock sync.Mutex    //互斥锁
 }
 
 /**
@@ -121,7 +121,7 @@ func (tm *transactionManager) checkXIDCounter() {
 }
 
 //根据xid来获取位置
-func xidPosition(xid XID) (int64, int) {
+func xidPosition(xid TransactionID) (int64, int) {
 	position := _XID_FILE_HEADER_SIZE + (xid-1)*_XID_FILE_HEADER_SIZE
 	return int64(position), _XID_FIELD_SIZE
 }
@@ -142,7 +142,7 @@ func (t *transactionManager) increaseXIDCounter() {
 }
 
 //更新xid的事务为state的状态
-func (t *transactionManager) updateTransactionState(xid XID, state int) {
+func (t *transactionManager) updateTransactionState(xid TransactionID, state int) {
 	position, length := xidPosition(xid) //获取位置
 	tmp := make([]byte, length)
 	tmp[0] = byte(state)
@@ -158,7 +158,7 @@ func (t *transactionManager) updateTransactionState(xid XID, state int) {
 }
 
 //开启事务
-func (t *transactionManager) Begin() XID {
+func (t *transactionManager) Begin() TransactionID {
 	t.counterLock.Lock()
 	defer t.counterLock.Lock()
 	xid := t.xidCounter
@@ -170,17 +170,17 @@ func (t *transactionManager) Begin() XID {
 }
 
 //提交事务
-func (t *transactionManager) Commit(xid XID) {
+func (t *transactionManager) Commit(xid TransactionID) {
 	t.updateTransactionState(xid, _FIELD_TRAN_COMMITED)
 }
 
 //回滚事务
-func (t *transactionManager) Abort(xid XID) {
+func (t *transactionManager) Abort(xid TransactionID) {
 	t.updateTransactionState(xid, _FIELD_TRAN_ABORTED)
 }
 
 //判断xid这个事务是否处于state的状态
-func (t *transactionManager) checkXID(xid XID, state int) bool {
+func (t *transactionManager) checkXID(xid TransactionID, state int) bool {
 	position, length := xidPosition(xid)
 	tmp := make([]byte, length)
 	_, err := t.file.ReadAt(tmp, position)
@@ -190,7 +190,7 @@ func (t *transactionManager) checkXID(xid XID, state int) bool {
 	return tmp[0] == byte(state)
 }
 
-func (t *transactionManager) IsActive(xid XID) bool {
+func (t *transactionManager) IsActive(xid TransactionID) bool {
 	if xid == SUPER_XID {
 		return false
 	}
@@ -198,14 +198,14 @@ func (t *transactionManager) IsActive(xid XID) bool {
 }
 
 //todo:为什么为super_xid时返回true
-func (t *transactionManager) IsCommitted(xid XID) bool {
+func (t *transactionManager) IsCommitted(xid TransactionID) bool {
 	if xid == SUPER_XID {
 		return true
 	}
 	return t.checkXID(xid, _FIELD_TRAN_COMMITED)
 }
 
-func (t *transactionManager) IsAborted(xid XID) bool {
+func (t *transactionManager) IsAborted(xid TransactionID) bool {
 	if xid == SUPER_XID {
 		return false
 	}
