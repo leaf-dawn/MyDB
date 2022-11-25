@@ -1,20 +1,20 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/pcacher"
+	"briefDb/backend/data_manage/page_cacher"
 	"briefDb/backend/utils"
 )
 
-func UUID2Address(uid utils.UUID) (pcacher.Pgno, Offset) {
+func UUID2Address(uid utils.UUID) (page_cacher.PageNum, Offset) {
 	u := uint64(uid)
 	offset := Offset(u & ((1 << 16) - 1))
 	u >>= 32
-	pgno := pcacher.Pgno(u & ((1 << 32) - 1))
-	return pgno, offset
+	pageNum := page_cacher.PageNum(u & ((1 << 32) - 1))
+	return pageNum, offset
 }
 
-func Address2UUID(pgno pcacher.Pgno, offset Offset) utils.UUID {
-	u0 := uint64(pgno)
+func Address2UUID(pageNum page_cacher.PageNum, offset Offset) utils.UUID {
+	u0 := uint64(pageNum)
 	u1 := uint64(offset)
 	return utils.UUID((u0 << 32) | u1)
 }

@@ -19,7 +19,7 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/pcacher"
+	"briefDb/backend/data_manage/page_cacher"
 	tm "briefDb/backend/transaction_manage"
 	"briefDb/backend/utils"
 	"sync"
@@ -31,7 +31,7 @@ type DataItem interface {
 
 	Before()
 	UnBefore()
-	After(xid tm.XID)
+	After(xid tm.TransactionID)
 	Release()
 
 	// 下面是DM为上层模块提供的针对DataItem的锁操作.
@@ -67,7 +67,7 @@ type dataItem struct {
 
 	dm  *dataManager
 	uid utils.UUID
-	pg  pcacher.Page
+	pg  page_cacher.Page
 }
 
 // WrapDataitemRaw 将data转换成dataitem的数组格式即 [data] -> [valid, size, data]
@@ -85,12 +85,12 @@ func InValidRawDataItem(raw []byte) {
 }
 
 // ParseDataItem 从pg的offset位移处, 解析出对应的dataitem
-func ParseDataItem(pg pcacher.Page, offset Offset, dm *dataManager) *dataItem {
+func ParseDataItem(pg page_cacher.Page, offset Offset, dm *dataManager) *dataItem {
 	raw := pg.Data()[offset:]
 	size := utils.ParseUint16(raw[_OF_DATA_SIZE:])
 	length := size + _OF_DATA
 	// 所属页号拼接上页内偏移作为dataItem的id
-	uid := Address2UUID(pg.Pgno(), offset)
+	uid := Address2UUID(pg.PageNum(), offset)
 
 	di := &dataItem{
 		raw:    raw[:length],
@@ -121,7 +121,7 @@ func (di *dataItem) UnBefore() {
 	copy(di.raw, di.oldraw)
 	di.rwlock.Unlock()
 }
-func (di *dataItem) After(xid tm.XID) {
+func (di *dataItem) After(xid tm.TransactionID) {
 	di.dm.logDataitem(xid, di)
 	di.rwlock.Unlock()
 }

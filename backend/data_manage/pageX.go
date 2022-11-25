@@ -9,42 +9,42 @@
 */
 package data_manage
 
-import "briefDb/backend/data_manage/pcacher"
+import "briefDb/backend/data_manage/page_cacher"
 
 const (
-	_PX_OF_FREE = 0 //页内空闲空间偏移
-	_PX_OF_DATA = 2 //页内数据偏移
+	_PageX_OF_FREE = 0 //页内空闲空间偏移
+	_PageX_OF_DATA = 2 //页内数据偏移
 )
 
-// PXInitData 返回创建普通页时的初始内容
-func PXInitRaw() []byte {
-	raw := make([]byte, pcacher.PAGE_SIZE)
+// PageXInitData 返回创建普通页时的初始内容
+func PageXInitRaw() []byte {
+	raw := make([]byte, page_cacher.PAGE_SIZE)
 	// 初始时将FSO初始化为DATA的位移
-	pxRawUpdateFSO(raw, _PX_OF_DATA)
+	pxRawUpdateFSO(raw, _PageX_OF_DATA)
 	return raw
 }
 
-// PXMaxFreeSpace 返回普通页最大的FreeSpace
-func PXMaxFreeSpace() int {
-	return pcacher.PAGE_SIZE - _PX_OF_DATA
+// PageXMaxFreeSpace 返回普通页最大的FreeSpace
+func PageXMaxFreeSpace() int {
+	return page_cacher.PAGE_SIZE - _PageX_OF_DATA
 }
 
 // pxRawFSO 通过raw, 取得free space offset的内容
 func pxRawFSO(raw []byte) Offset {
-	return ParseOffset(raw[_PX_OF_FREE:])
+	return ParseOffset(raw[_PageX_OF_FREE:])
 }
 
-func PxFSO(pg pcacher.Page) Offset {
+func PxFSO(pg page_cacher.Page) Offset {
 	return pxRawFSO(pg.Data())
 }
 
 // pxRawUpdateFSO 更新raw中FSO的内容
 func pxRawUpdateFSO(raw []byte, offset Offset) {
-	PutOffset(raw[_PX_OF_FREE:], offset)
+	PutOffset(raw[_PageX_OF_FREE:], offset)
 }
 
-// PXInsert 将raw插入到pg这一页内, 并返回插入的位移
-func PXInsert(pg pcacher.Page, raw []byte) Offset {
+// PageXInsert 将raw插入到pg这一页内, 并返回插入的位移
+func PageXInsert(pg page_cacher.Page, raw []byte) Offset {
 	pg.Dirty()
 	//在空闲位置以后写入数据
 	offset := pxRawFSO(pg.Data())
@@ -54,21 +54,21 @@ func PXInsert(pg pcacher.Page, raw []byte) Offset {
 	return offset
 }
 
-// PXFreeSpace 返回pg的free space大小
-func PXFreeSpace(pg pcacher.Page) int {
-	return pcacher.PAGE_SIZE - int(pxRawFSO(pg.Data()))
+// PageXFreeSpace 返回pg的free space大小
+func PageXFreeSpace(pg page_cacher.Page) int {
+	return page_cacher.PAGE_SIZE - int(pxRawFSO(pg.Data()))
 }
 
-// PXRecoverUpdate 辅助Recovery, 直接将raw的值复制到pg的offset位置.
-func PXRecoverUpdate(pg pcacher.Page, offset Offset, raw []byte) {
+// PageXRecoverUpdate 辅助Recovery, 直接将raw的值复制到pg的offset位置.
+func PageXRecoverUpdate(pg page_cacher.Page, offset Offset, raw []byte) {
 	pg.Dirty()
 	copy(pg.Data()[offset:], raw)
 }
 
-// PXRecoverInsert 辅助Recovery, 直接将raw复制到pg的offset位置.
+// PageXRecoverInsert 辅助Recovery, 直接将raw复制到pg的offset位置.
 // 然后将pg的FSO设置为较大的那一个.
 // 可能会有一个BUG, 见recovery.go
-func PXRecoverInsert(pg pcacher.Page, offset Offset, raw []byte) {
+func PageXRecoverInsert(pg page_cacher.Page, offset Offset, raw []byte) {
 	pg.Dirty()
 	copy(pg.Data()[offset:], raw)
 

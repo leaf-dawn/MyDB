@@ -14,7 +14,7 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/pcacher"
+	"briefDb/backend/data_manage/page_cacher"
 	"briefDb/backend/utils"
 	"bytes"
 )
@@ -26,7 +26,7 @@ const (
 
 // P1InitRaw 返回page1初始内容
 func P1InitRaw() []byte {
-	raw := make([]byte, pcacher.PAGE_SIZE)
+	raw := make([]byte, page_cacher.PAGE_SIZE)
 	p1RawSetVCOpen(raw)
 	return raw
 }
@@ -42,19 +42,19 @@ func p1RawSetVCClose(raw []byte) {
 }
 
 // P1SetVCOpen 让dm在Open的时候调用.
-func P1SetVCOpen(pg pcacher.Page) {
+func P1SetVCOpen(pg page_cacher.Page) {
 	pg.Dirty()
 	p1RawSetVCOpen(pg.Data())
 }
 
 // P1SetVCClose 让dm在Close的时候调用.
-func P1SetVCClose(pg pcacher.Page) {
+func P1SetVCClose(pg page_cacher.Page) {
 	pg.Dirty()
 	p1RawSetVCClose(pg.Data())
 }
 
 // P1CheckVC 对page1进行VC检验.
-func P1CheckVC(pg pcacher.Page) bool {
+func P1CheckVC(pg page_cacher.Page) bool {
 	return p1RawCheckVC(pg.Data())
 }
 func p1RawCheckVC(raw []byte) bool {

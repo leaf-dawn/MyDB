@@ -9,34 +9,34 @@
 	Page释放协议:
 		在对Page操作完之后, 一定要调用Release()释放掉该页.
 */
-package pcacher
+package page_cacher
 
 import "sync"
 
 type Page interface {
-	Pgno() Pgno   // 取得页号
-	Data() []byte // 取得页内容, 以共享的方式
-	Dirty()       // 将该页设置为脏页
-	Release()     // 释放该页
+	PageNum() PageNum // 取得页号
+	Data() []byte     // 取得页内容, 以共享的方式
+	Dirty()           // 将该页设置为脏页
+	Release()         // 释放该页
 
 	Lock()
 	Unlock()
 }
 
 type page struct {
-	pgno  Pgno
-	data  []byte
-	dirty bool
-	lock  sync.Mutex
+	pageNum PageNum
+	data    []byte
+	dirty   bool
+	lock    sync.Mutex
 
-	pc *pcacher
+	pageCacher *pageCacher
 }
 
-func NewPage(pgno Pgno, data []byte, pc *pcacher) *page {
+func NewPage(pgno PageNum, data []byte, pageCacher *pageCacher) *page {
 	return &page{
-		pgno: pgno,
-		data: data,
-		pc:   pc,
+		pageNum:    pgno,
+		data:       data,
+		pageCacher: pageCacher,
 	}
 }
 
@@ -49,15 +49,15 @@ func (p *page) Lock() {
 }
 
 func (p *page) Release() {
-	p.pc.release(p)
+	p.pageCacher.release(p)
 }
 
 func (p *page) Dirty() {
 	p.dirty = true
 }
 
-func (p *page) Pgno() Pgno {
-	return p.pgno
+func (p *page) PageNum() PageNum {
+	return p.pageNum
 }
 
 func (p *page) Data() []byte {
