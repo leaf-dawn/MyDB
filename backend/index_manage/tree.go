@@ -43,3 +43,32 @@ func Create(dm dm.DataManager) (utils.UUID, error) {
 
 	return bootUUID, nil
 }
+
+// Load 通过bootUUIDd读取b+树
+// todo:是否设置为存储根节点位置在起始位置
+func Load(bootUUID utils.UUID, dm dm.DataManager) (BPlusTree, error) {
+	bootItem, ok, err := dm.Read(bootUUID)
+	if err != nil {
+		return nil, err
+	}
+	utils.Assert(ok)
+
+	tree := &bPlusTree{
+		bootUUID:     bootUUID,
+		DataManager:  dm,
+		bootDataItem: bootItem,
+	}
+	return tree, nil
+}
+
+func (bt *bPlusTree) Insert(key, uuid utils.UUID) error {
+	return nil
+}
+
+func (bt *bPlusTree) Search(key utils.UUID) ([]utils.UUID, error) {
+	return nil, nil
+}
+
+func (bt *bPlusTree) SearchRange(leftKey, rightKey utils.UUID) ([]utils.UUID, error) {
+	return nil, nil
+}
