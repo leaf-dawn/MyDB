@@ -153,7 +153,7 @@ func (u *node) IsLeaf() bool {
 }
 
 // SearchNext
-// 寻找对应key的uuid, 如果找不到, 则返回sibling uuid
+// 寻找对应key的son, 如果找不到, 则返回sibling uuid
 func (u *node) SearchNext(key utils.UUID) (utils.UUID, utils.UUID) {
 	// 锁当前节点
 	u.dataItem.RLock()
