@@ -86,11 +86,36 @@ func (bt *bPlusTree) Insert(key, uuid utils.UUID) error {
 }
 
 func (bt *bPlusTree) Search(key utils.UUID) ([]utils.UUID, error) {
-	return nil, nil
+	return bt.SearchRange(key, key)
 }
 
 func (bt *bPlusTree) SearchRange(leftKey, rightKey utils.UUID) ([]utils.UUID, error) {
-	return nil, nil
+	rootUUID := bt.rootUUID()
+
+	leafUUID, err := bt.searchLeaf(rootUUID, leftKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var uuids []utils.UUID
+	for {
+		// 不断的从leaf向sibling迭代, 将所有满足的uuid都加入
+		leaf, err := loadNode(bt, leafUUID)
+		if err != nil {
+			return nil, err
+		}
+		tmp, siblingUUID := leaf.LeafSearchRange(leftKey, rightKey)
+		leaf.Release()
+		uuids = append(uuids, tmp...)
+
+		if siblingUUID == utils.NilUUID {
+			break
+		} else {
+			leafUUID = siblingUUID
+		}
+	}
+
+	return uuids, nil
 }
 
 // insert 将(uuid, key)插入到B+树中, 如果有分裂, 则将分裂产生的新节点也返回.
@@ -195,4 +220,29 @@ func (bt *bPlusTree) updateRootUUID(left, right, rightKey utils.UUID) error {
 	copy(bt.bootDataItem.Data(), utils.UUIDToRaw(newRootUUID))
 	bt.bootDataItem.After(tm.SUPER_TRANSACTION_ID)
 	return nil
+}
+
+// searchLeaf
+// 根据key, 在nodeUUID代表节点的子树中搜索, 直到找到其对应的叶节点地址.
+func (bt *bPlusTree) searchLeaf(nodeUUID, key utils.UUID) (utils.UUID, error) {
+	// 读取node
+	node, err := loadNode(bt, nodeUUID)
+	if err != nil {
+		return utils.NilUUID, err
+	}
+	isLeaf := node.IsLeaf()
+	node.Release()
+
+	if isLeaf {
+		// 找到对应的叶子节点
+		return nodeUUID, nil
+	} else {
+		// 找到key所在的下一个节点
+		next, err := bt.searchNext(nodeUUID, key)
+		if err != nil {
+			return utils.NilUUID, err
+		}
+		// 向next中继续查找
+		return bt.searchLeaf(next, key)
+	}
 }
