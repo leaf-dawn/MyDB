@@ -6,6 +6,7 @@
 package table_manage
 
 import (
+	im "briefDb/backend/index_manage"
 	"briefDb/backend/utils"
 	"errors"
 )
@@ -21,4 +22,6 @@ type field struct {
 	FieldName string
 	FieldType string
 	index     utils.UUID
+
+	bPlusTree im.BPlusTree
 }

@@ -1,15 +1,8 @@
 package parser
 
-import "errors"
-
-var (
-	ErrInvalidStat = errors.New("Invalid command.")
-	ErrHasNoIndex  = errors.New("Table has no index.")
-)
-
 //
 // tokener
-// @Description: 将语句token化
+// @Description: 将语句token化，词法分析
 //
 type tokener struct {
 	stat []byte //状态
