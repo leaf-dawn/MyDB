@@ -380,12 +380,152 @@ func parseSingleExpr(tokener *tokener) (*SingleExp, error) {
 	return singleExp, nil
 }
 
-func parseDrop(tokener *tokener) (*Drop, error) {
-	return nil, nil
+// 解析create语句
+func parseCreate(tokener *tokener) (*Create, error) {
+
+	// create table
+	table, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if table != "table" {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	create := new(Create)
+	// table 名称
+	name, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if isName(name) == false {
+		return nil, ErrInvalidStat
+	}
+	create.TableName = name
+
+	// 解析创建的字段
+	for {
+		tokener.Pop()
+		field, err := tokener.Peek()
+
+		if field == "(" {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// 解析一个字段名
+		if isName(field) == false {
+			return nil, ErrInvalidStat
+		}
+		tokener.Pop()
+
+		// 类型
+		ftype, err := tokener.Peek()
+		if err != nil {
+			return nil, err
+		}
+		if isType(ftype) == false {
+			return nil, ErrInvalidStat
+		}
+
+		create.FieldName = append(create.FieldName, field)
+		create.FieldType = append(create.FieldType, ftype)
+		tokener.Pop()
+
+		// 下一个如果是,继续解析，如果
+		next, err := tokener.Peek()
+		if err != nil {
+			return nil, err
+		}
+		if next == "," {
+			// 解析下一个
+		} else if next == "" {
+			return nil, ErrHasNoIndex
+		} else if next == "(" {
+			// 解析到左括号退出，说明解析到索引了
+			break
+		} else {
+			return nil, ErrInvalidStat
+		}
+	}
+
+	// 解析index
+	// 弹出左括号
+	tokener.Pop()
+
+	// index
+	index, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if index != "index" {
+		return nil, ErrInvalidStat
+	}
+	for {
+		// 循环遍历每一个index
+		tokener.Pop()
+		field, err := tokener.Peek()
+		if err != nil {
+			return nil, err
+		}
+		// 左括号退出
+		if field == ")" {
+			break
+		} else if isName(field) == false {
+			return nil, ErrInvalidStat
+		} else {
+			create.Index = append(create.Index, field)
+		}
+	}
+	// 弹出右括号
+	tokener.Pop()
+	eof, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if eof != "" {
+		return nil, ErrInvalidStat
+	}
+	return create, nil
 }
 
-func parseCreate(tokener *tokener) (*Create, error) {
-	return nil, nil
+// 删除table
+func parseDrop(tokener *tokener) (*Drop, error) {
+	// table
+	table, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if table != "table" {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	// 读取table名称
+	tableName, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if isName(tableName) == false {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	// 结束
+	eof, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if eof != "" {
+		return nil, ErrInvalidStat
+	}
+
+	drop := new(Drop)
+	drop.TableName = tableName
+	return drop, nil
 }
 
 func parseBegin(tokener *tokener) (*Begin, error) {
