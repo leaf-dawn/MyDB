@@ -529,15 +529,101 @@ func parseDrop(tokener *tokener) (*Drop, error) {
 }
 
 func parseBegin(tokener *tokener) (*Begin, error) {
-	return nil, nil
+	isolation, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	begin := new(Begin)
+	if isolation == "" {
+		return begin, nil
+	}
+
+	if isolation != "isolation" {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	// 事务级别
+	level, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if level != "level" {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	// 可重复读和提交读
+	tmp1, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if tmp1 == "read" {
+		tokener.Pop()
+		tmp2, err := tokener.Peek()
+		if tmp2 == "committed" {
+			tokener.Pop()
+			eof, err := tokener.Peek()
+			if err != nil {
+				return nil, err
+			}
+			if eof != "" {
+				return nil, ErrInvalidStat
+			}
+
+			return begin, nil
+		} else {
+			return nil, err
+		}
+	} else if tmp1 == "repeatable" {
+		tokener.Pop()
+		tmp2, err := tokener.Peek()
+		if err != nil {
+			return nil, err
+		}
+		if tmp2 == "read" {
+			begin.IsRepeatableRead = true
+			tokener.Pop()
+			eof, err := tokener.Peek()
+			if err != nil {
+				return nil, err
+			}
+			if eof != "" {
+				return nil, ErrInvalidStat
+			}
+			return begin, nil
+		} else {
+			return nil, ErrInvalidStat
+		}
+	} else {
+		return nil, ErrInvalidStat
+	}
 }
 
+// commit提交，仅需要判断是否结束即可
 func parseCommit(tokener *tokener) (*Commit, error) {
-	return nil, nil
+	tmp, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if tmp == "" {
+		return new(Commit), nil
+	} else {
+		return nil, ErrInvalidStat
+	}
 }
 
+// abort回滚，仅需要判断是否结束即可
 func parseAbort(tokener *tokener) (*Abort, error) {
-	return nil, nil
+	tmp, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if tmp == "" {
+		return new(Abort), nil
+	} else {
+		return nil, ErrInvalidStat
+	}
 }
 
 // 是否是逻辑语句
