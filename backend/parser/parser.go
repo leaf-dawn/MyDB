@@ -7,7 +7,15 @@ var (
 	ErrHasNoIndex  = errors.New("Table has no index.")
 )
 
+//
+// Parse
+//  @Description:简单的语法分析器
+//  @param statement
+//  @return interface{}
+//  @return error
+//
 func Parse(statement []byte) (interface{}, error) {
+	// 读取第一个token查看需要进行什么解析
 	tokener := newTokener(statement)
 	token, err := tokener.Peek()
 	if err != nil {
@@ -53,7 +61,15 @@ func Parse(statement []byte) (interface{}, error) {
 }
 
 func parseShow(tokener *tokener) (*Show, error) {
-	return nil, nil
+	tmp, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if tmp == "" {
+		return new(Show), nil
+	} else {
+		return nil, ErrInvalidStat
+	}
 }
 
 func parseUpdate(tokener *tokener) (*Update, error) {
