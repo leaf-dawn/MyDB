@@ -134,11 +134,85 @@ func parseUpdate(tokener *tokener) (*Update, error) {
 }
 
 func parseDelete(tokener *tokener) (*Delete, error) {
-	return nil, nil
+	deleteStat := new(Delete)
+	// from
+	from, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if from != "from" {
+		return nil, ErrInvalidStat
+	}
+
+	// tableName
+	tokener.Pop()
+	tableName, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if isName(tableName) == false {
+		return nil, ErrInvalidStat
+	}
+	deleteStat.TableName = tableName
+
+	// where
+	tokener.Pop()
+	where, err := parseWhere(tokener)
+	if err != nil {
+		return nil, err
+	}
+	deleteStat.Where = where
+	return deleteStat, nil
 }
 
+// 解析简单insert语法
+// insert into tableName values value1 value2...
 func parseInsert(tokener *tokener) (*Insert, error) {
-	return nil, nil
+	insert := new(Insert)
+
+	into, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if into != "into" {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	// tableName
+	tableName, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if isName(tableName) == false {
+		return nil, ErrInvalidStat
+	}
+	insert.TableName = tableName
+	tokener.Pop()
+
+	// 读取values
+	values, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if values != "values" {
+		return nil, ErrInvalidStat
+	}
+
+	for {
+		tokener.Pop()
+		value, err := tokener.Peek()
+		if err != nil {
+			return nil, err
+		}
+		if value == "" {
+			break
+		} else {
+			insert.Values = append(insert.Values, value)
+		}
+	}
+
+	return insert, nil
 }
 
 func parseRead(tokener *tokener) (*Read, error) {
