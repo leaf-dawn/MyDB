@@ -216,7 +216,78 @@ func parseInsert(tokener *tokener) (*Insert, error) {
 }
 
 func parseRead(tokener *tokener) (*Read, error) {
-	return nil, nil
+	read := new(Read)
+
+	asterisk, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if asterisk == "*" {
+		// 读取全部字段
+		read.Fields = append(read.Fields, "*")
+		tokener.Pop()
+	} else {
+		// 读取多个字段
+		for {
+			field, err := tokener.Peek()
+			if err != nil {
+				return nil, err
+			}
+			if isName(field) == false {
+				return nil, ErrInvalidStat
+			}
+			read.Fields = append(read.Fields, field)
+			tokener.Pop()
+
+			// 分隔符，如果没有分隔符则退出
+			comma, err := tokener.Peek()
+			if err != nil {
+				return nil, err
+			}
+			if comma == "," {
+				tokener.Pop()
+			} else {
+				break
+			}
+		}
+	}
+
+	// from tableName
+	from, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if from != "from" {
+		return nil, ErrInvalidStat
+	}
+	tokener.Pop()
+
+	tableName, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if isName(tableName) == false {
+		return nil, ErrInvalidStat
+	}
+	read.TableName = tableName
+	tokener.Pop()
+
+	// where
+	tmp, err := tokener.Peek()
+	if err != nil {
+		return nil, err
+	}
+	if tmp == "" {
+		read.Where = nil
+		return read, nil
+	}
+
+	where, err := parseWhere(tokener)
+	if err != nil {
+		return nil, err
+	}
+	read.Where = where
+	return read, nil
 }
 
 // 解析where后面的表达式
