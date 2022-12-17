@@ -1,6 +1,6 @@
 package transaction_manage
 
-import "briefDb/backend/utils"
+import "fansDB/backend/utils"
 
 //TransactionID事务id
 // xxid的别名

@@ -14,9 +14,9 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/page_cacher"
-	"briefDb/backend/utils"
 	"bytes"
+	"fansDB/backend/data_manage/page_cacher"
+	"fansDB/backend/utils"
 )
 
 const (

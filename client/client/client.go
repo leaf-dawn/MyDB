@@ -6,7 +6,7 @@
 
 package client
 
-import "briefDb/transporter"
+import "fansDB/transporter"
 
 type Client interface {
 	Execute(stat []byte) ([]byte, error)

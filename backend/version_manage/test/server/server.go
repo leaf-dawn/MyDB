@@ -10,12 +10,12 @@
 package main
 
 import (
-	dm "briefDb/backend/data_manage"
-	tm "briefDb/backend/transaction_manage"
-	"briefDb/backend/utils"
-	sm "briefDb/backend/version_manage"
-	"briefDb/transporter"
 	"errors"
+	dm "fansDB/backend/data_manage"
+	tm "fansDB/backend/transaction_manage"
+	"fansDB/backend/utils"
+	sm "fansDB/backend/version_manage"
+	"fansDb/transporter"
 	"flag"
 	"net"
 	"strings"

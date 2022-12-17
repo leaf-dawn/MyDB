@@ -5,7 +5,7 @@
  */
 package client
 
-import "briefDb/transporter"
+import "fansDb/transporter"
 
 type RoundTripper interface {
 	RoundTrip(pkg transporter.Package) (transporter.Package, error)

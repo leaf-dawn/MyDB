@@ -18,8 +18,8 @@
 package logger
 
 import (
-	"briefDb/backend/utils"
 	"errors"
+	"fansDB/backend/utils"
 	"os"
 	"sync"
 )

@@ -1,6 +1,6 @@
 package page_cacher
 
-import "briefDb/backend/utils"
+import "fansDB/backend/utils"
 
 type PageNum uint32 //页号
 

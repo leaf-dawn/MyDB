@@ -1,9 +1,9 @@
 package index_manage
 
 import (
-	dm "briefDb/backend/data_manage"
-	tm "briefDb/backend/transaction_manage"
-	"briefDb/backend/utils"
+	dm "fansDB/backend/data_manage"
+	tm "fansDB/backend/transaction_manage"
+	"fansDB/backend/utils"
 )
 
 const (

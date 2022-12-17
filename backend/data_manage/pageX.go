@@ -9,7 +9,7 @@
 */
 package data_manage
 
-import "briefDb/backend/data_manage/page_cacher"
+import "fansDB/backend/data_manage/page_cacher"
 
 const (
 	_PageX_OF_FREE = 0 //页内空闲空间偏移

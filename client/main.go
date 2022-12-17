@@ -1,8 +1,8 @@
 package main
 
 import (
-	"briefDb/client/client"
-	"briefDb/transporter"
+	"fansDB/client/client"
+	"fansDB/transporter"
 	"fmt"
 	"net"
 	"os"

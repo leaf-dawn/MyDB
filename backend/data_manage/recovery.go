@@ -4,10 +4,10 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/logger"
-	"briefDb/backend/data_manage/page_cacher"
-	tm "briefDb/backend/transaction_manage"
-	"briefDb/backend/utils"
+	"fansDB/backend/data_manage/logger"
+	"fansDB/backend/data_manage/page_cacher"
+	tm "fansDB/backend/transaction_manage"
+	"fansDB/backend/utils"
 )
 
 const (

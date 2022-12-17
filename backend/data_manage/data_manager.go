@@ -5,13 +5,13 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/logger"
-	"briefDb/backend/data_manage/page_cacher"
-	"briefDb/backend/data_manage/page_free_manage"
-	tm "briefDb/backend/transaction_manage"
-	"briefDb/backend/utils"
-	"briefDb/backend/utils/cacher"
 	"errors"
+	"fansDB/backend/data_manage/logger"
+	"fansDB/backend/data_manage/page_cacher"
+	"fansDB/backend/data_manage/page_free_manage"
+	tm "fansDB/backend/transaction_manage"
+	"fansDB/backend/utils"
+	"fansDB/backend/utils/cacher"
 )
 
 var (

@@ -1,8 +1,8 @@
 package data_manage
 
 import (
-	"briefDb/backend/data_manage/page_cacher"
-	"briefDb/backend/utils"
+	"fansDB/backend/data_manage/page_cacher"
+	"fansDB/backend/utils"
 )
 
 func UUID2Address(uid utils.UUID) (page_cacher.PageNum, Offset) {

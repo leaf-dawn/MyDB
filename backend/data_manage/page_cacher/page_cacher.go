@@ -5,9 +5,9 @@
 package page_cacher
 
 import (
-	"briefDb/backend/utils"
-	"briefDb/backend/utils/cacher"
 	"errors"
+	"fansDB/backend/utils"
+	"fansDB/backend/utils/cacher"
 	"os"
 	"sync"
 	"sync/atomic"

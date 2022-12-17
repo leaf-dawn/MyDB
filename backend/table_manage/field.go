@@ -6,9 +6,9 @@
 package table_manage
 
 import (
-	im "briefDb/backend/index_manage"
-	"briefDb/backend/utils"
 	"errors"
+	im "fansDB/backend/index_manage"
+	"fansDB/backend/utils"
 )
 
 var (

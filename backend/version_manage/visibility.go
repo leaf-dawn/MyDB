@@ -1,6 +1,6 @@
 package version_manage
 
-import tm "briefDb/backend/Transaction_manage"
+import tm "fansDB/backend/Transaction_manage"
 
 // 可见性相关函数，用于判断一个事务是否对另一个事务可见的。
 

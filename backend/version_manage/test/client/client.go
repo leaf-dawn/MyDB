@@ -1,9 +1,9 @@
 package main
 
 import (
-	"briefDb/backend/utils"
-	"briefDb/transporter"
 	"bufio"
+	"fansDB/backend/utils"
+	"fansDB/transporter"
 	"fmt"
 	"net"
 	"os"
