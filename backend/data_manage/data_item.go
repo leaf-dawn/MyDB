@@ -65,9 +65,9 @@ type dataItem struct {
 	// 解决并发的锁
 	rwlock sync.RWMutex
 
-	dm  *dataManager
-	uid utils.UUID
-	pg  page_cacher.Page
+	dataManager *dataManager
+	uid         utils.UUID
+	pageCacher  page_cacher.Page
 }
 
 // WrapDataitemRaw 将data转换成dataitem的数组格式即 [data] -> [valid, size, data]
@@ -84,20 +84,20 @@ func InValidRawDataItem(raw []byte) {
 	raw[_OF_VALID_FLAG] = byte(1)
 }
 
-// ParseDataItem 从pg的offset位移处, 解析出对应的dataitem
-func ParseDataItem(pg page_cacher.Page, offset Offset, dm *dataManager) *dataItem {
-	raw := pg.Data()[offset:]
+// ParseDataItem 从pageCacher的offset位移处, 解析出对应的dataitem
+func ParseDataItem(pageCacher page_cacher.Page, offset Offset, dataManager *dataManager) *dataItem {
+	raw := pageCacher.Data()[offset:]
 	size := utils.ParseUint16(raw[_OF_DATA_SIZE:])
 	length := size + _OF_DATA
 	// 所属页号拼接上页内偏移作为dataItem的id
-	uid := Address2UUID(pg.PageNum(), offset)
+	uid := Address2UUID(pageCacher.PageNum(), offset)
 
 	di := &dataItem{
-		raw:    raw[:length],
-		oldraw: make([]byte, length),
-		pg:     pg,
-		uid:    uid,
-		dm:     dm,
+		raw:         raw[:length],
+		oldraw:      make([]byte, length),
+		pageCacher:  pageCacher,
+		uid:         uid,
+		dataManager: dataManager,
 	}
 	return di
 }
@@ -114,7 +114,7 @@ func (di *dataItem) UUID() utils.UUID {
 }
 func (di *dataItem) Before() {
 	di.rwlock.Lock()
-	di.pg.Dirty()
+	di.pageCacher.Dirty()
 	copy(di.oldraw, di.raw)
 }
 func (di *dataItem) UnBefore() {
@@ -122,11 +122,11 @@ func (di *dataItem) UnBefore() {
 	di.rwlock.Unlock()
 }
 func (di *dataItem) After(xid tm.TransactionID) {
-	di.dm.logDataitem(xid, di)
+	di.dataManager.logDataitem(xid, di)
 	di.rwlock.Unlock()
 }
 func (di *dataItem) Release() {
-	di.dm.ReleaseDataitem(di)
+	di.dataManager.ReleaseDataitem(di)
 }
 func (di *dataItem) Lock() {
 	di.rwlock.Lock()

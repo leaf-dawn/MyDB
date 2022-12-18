@@ -18,8 +18,8 @@ var (
 type entry map[string]interface{}
 
 type table struct {
-	TBM      *tableManager
-	SelfUUID utils.UUID
+	TableManager *tableManager
+	SelfUUID     utils.UUID
 
 	Name   string
 	status byte
@@ -34,15 +34,15 @@ type table struct {
 	是不可恢复的错误, 应该直接panic.
 */
 func LoadTable(tbm *tableManager, uuid utils.UUID) *table {
-	raw, ok, err := tbm.SM.Read(tm.SUPER_TRANSACTION_ID, uuid)
+	raw, ok, err := tbm.SerializabilityManager.Read(tm.SUPER_TRANSACTION_ID, uuid)
 	utils.Assert(ok)
 	if err != nil {
 		panic(err)
 	}
 
 	tb := &table{
-		TBM:      tbm,
-		SelfUUID: uuid,
+		TableManager: tbm,
+		SelfUUID:     uuid,
 	}
 
 	tb.parseSelf(raw)
@@ -68,9 +68,9 @@ func (t *table) parseSelf(raw []byte) {
 // CreateTable 创建一张表, 并返回其指针.
 func CreateTable(tbm *tableManager, next utils.UUID, xid tm.TransactionID, create *statement.Create) (*table, error) {
 	tb := &table{
-		TBM:  tbm,
-		Name: create.TableName,
-		Next: next,
+		TableManager: tbm,
+		Name:         create.TableName,
+		Next:         next,
 	}
 
 	for i := 0; i < len(create.FieldName); i++ {
@@ -106,7 +106,7 @@ func (t *table) persistSelf(xid tm.TransactionID) error {
 		raw = append(raw, utils.UUIDToRaw(f.SelfUUID)...)
 	}
 
-	self, err := t.TBM.SM.Insert(xid, raw)
+	self, err := t.TableManager.SerializabilityManager.Insert(xid, raw)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (t *table) Delete(xid tm.TransactionID, delete *statement.Delete) (int, err
 
 	count := 0
 	for _, uuid := range uuids {
-		ok, err := t.TBM.SM.Delete(xid, uuid)
+		ok, err := t.TableManager.SerializabilityManager.Delete(xid, uuid)
 		if err != nil {
 			return 0, err
 		}
@@ -172,7 +172,7 @@ func (t *table) Update(xid tm.TransactionID, update *statement.Update) (int, err
 
 	count := 0
 	for _, uuid := range uuids {
-		raw, ok, err := t.TBM.SM.Read(xid, uuid)
+		raw, ok, err := t.TableManager.SerializabilityManager.Read(xid, uuid)
 		if err != nil {
 			return 0, err
 		}
@@ -180,7 +180,7 @@ func (t *table) Update(xid tm.TransactionID, update *statement.Update) (int, err
 			continue
 		}
 
-		_, err = t.TBM.SM.Delete(xid, uuid) // 删除原来的entry
+		_, err = t.TableManager.SerializabilityManager.Delete(xid, uuid) // 删除原来的entry
 		if err != nil {
 			return 0, err
 		}
@@ -188,7 +188,7 @@ func (t *table) Update(xid tm.TransactionID, update *statement.Update) (int, err
 		e := t.parseEntry(raw) // 读取并解析entry
 		e[fd.FName] = v        // 更新entry
 		raw = t.entryToRaw(e)  // 将新entry存储进DB
-		uuid, err = t.TBM.SM.Insert(xid, raw)
+		uuid, err = t.TableManager.SerializabilityManager.Insert(xid, raw)
 		if err != nil {
 			return 0, err
 		}
@@ -216,7 +216,7 @@ func (t *table) Read(xid tm.TransactionID, read *statement.Read) (string, error)
 
 	result := ""
 	for _, uuid := range uuids {
-		raw, ok, err := t.TBM.SM.Read(xid, uuid)
+		raw, ok, err := t.TableManager.SerializabilityManager.Read(xid, uuid)
 		if err != nil {
 			return "", err
 		}
@@ -323,7 +323,7 @@ func (t *table) Insert(xid tm.TransactionID, insert *statement.Insert) error {
 	}
 
 	raw := t.entryToRaw(e) // 将该entry插入到DB
-	uuid, err := t.TBM.SM.Insert(xid, raw)
+	uuid, err := t.TableManager.SerializabilityManager.Insert(xid, raw)
 	if err != nil {
 		return err
 	}

@@ -20,28 +20,28 @@ type entry struct {
 	selfUUID utils.UUID
 	dataitem dm.DataItem //一个entry需要一个数据项去存储
 
-	sm *serializabilityManager
+	serializabilityManager *serializabilityManager
 }
 
-func newEntry(sm *serializabilityManager, di dm.DataItem, uuid utils.UUID) *entry {
+func newEntry(serializabilityManager *serializabilityManager, di dm.DataItem, uuid utils.UUID) *entry {
 	return &entry{
-		selfUUID: uuid,
-		sm:       sm,
-		dataitem: di,
+		selfUUID:               uuid,
+		serializabilityManager: serializabilityManager,
+		dataitem:               di,
 	}
 }
 
 // 通过uuid读取一个entry
-func LoadEntry(sm *serializabilityManager, uuid utils.UUID) (*entry, bool, error) {
-	// 通过sm中的dataitem读取uuid中的数据快
-	di, ok, err := sm.DM.Read(uuid)
+func LoadEntry(serializabilityManager *serializabilityManager, uuid utils.UUID) (*entry, bool, error) {
+	// 通过serializabilityManager中的dataitem读取uuid中的数据快
+	di, ok, err := serializabilityManager.DM.Read(uuid)
 	if err != nil {
 		return nil, false, err
 	}
 	if ok == false {
 		return nil, false, nil
 	}
-	return newEntry(sm, di, uuid), true, nil
+	return newEntry(serializabilityManager, di, uuid), true, nil
 }
 
 // WrapEntryRaw 将transactionID和data包裹成entry的二进制数据.
@@ -57,7 +57,7 @@ func WrapEntryRaw(transactionID tm.TransactionID, data []byte) []byte {
 
 // Release 释放一个entry的引用
 func (e *entry) Release() {
-	e.sm.ReleaseEntry(e)
+	e.serializabilityManager.ReleaseEntry(e)
 }
 
 // Remove 将entry从内存中彻底释放,直接删除即可

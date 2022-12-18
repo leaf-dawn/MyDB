@@ -9,7 +9,7 @@ import (
 	"fansDB/backend/data_manage/logger"
 	"fansDB/backend/data_manage/page_cacher"
 	"fansDB/backend/data_manage/page_free_manage"
-	tm "fansDB/backend/transaction_manage"
+	transactionManager "fansDB/backend/transaction_manage"
 	"fansDB/backend/utils"
 	"fansDB/backend/utils/cacher"
 )
@@ -21,63 +21,63 @@ var (
 
 type DataManager interface {
 	Read(uid utils.UUID) (DataItem, bool, error)
-	Insert(xid tm.TransactionID, data []byte) (utils.UUID, error)
+	Insert(xid transactionManager.TransactionID, data []byte) (utils.UUID, error)
 
 	Close()
 }
 
 type dataManager struct {
-	tm tm.TransactionManager  // tm主要用于恢复时使用
-	pc page_cacher.PageCacher //页缓存
-	lg logger.Logger          //日志记录
+	transactionManager transactionManager.TransactionManager // transactionManager主要用于恢复时使用
+	pageCacher         page_cacher.PageCacher                //页缓存
+	logger             logger.Logger                         //日志记录
 
-	pidx page_free_manage.PageFreeManager
-	dic  cacher.Cacher // dataitem的cache
+	pageFreeManager page_free_manage.PageFreeManager
+	dataitemCacher  cacher.Cacher // dataitem的cache
 
 	page1 page_cacher.Page
 }
 
-func newDataManager(pc page_cacher.PageCacher, lg logger.Logger, tm tm.TransactionManager) *dataManager {
-	pidx := page_free_manage.NewPageFreeManager()
+func newDataManager(pageCacher page_cacher.PageCacher, logger logger.Logger, transactionManager transactionManager.TransactionManager) *dataManager {
+	pageFreeManager := page_free_manage.NewPageFreeManager()
 
 	dm := &dataManager{
-		tm:   tm,
-		pc:   pc,
-		lg:   lg,
-		pidx: pidx,
+		transactionManager: transactionManager,
+		pageCacher:         pageCacher,
+		logger:             logger,
+		pageFreeManager:    pageFreeManager,
 	}
 
 	options := new(cacher.Options)
-	options.MaxHandles = 0 // 实际的内存限制实际上是在pcacher中, 所以这里应该设置为0, 表示无限
+	options.MaxHandles = 0 // 实际的内存限制实际上是在pageCacheracher中, 所以这里应该设置为0, 表示无限
 	options.Get = dm.getForCacher
 	options.Release = dm.releaseForCacher
-	dm.dic = cacher.NewCacher(options)
+	dm.dataitemCacher = cacher.NewCacher(options)
 
 	return dm
 }
 
-func Open(path string, mem int64, tm tm.TransactionManager) *dataManager {
-	pc := page_cacher.Open(path, mem)
-	lg := logger.Open(path)
+func Open(path string, mem int64, transactionManager transactionManager.TransactionManager) *dataManager {
+	pageCacher := page_cacher.Open(path, mem)
+	logger := logger.Open(path)
 
-	dm := newDataManager(pc, lg, tm)
+	dm := newDataManager(pageCacher, logger, transactionManager)
 	if dm.loadAndCheckPage1() == false {
-		Recover(dm.tm, dm.lg, dm.pc)
+		Recover(dm.transactionManager, dm.logger, dm.pageCacher)
 	}
 
 	dm.fillPageFreeManager()
 
 	P1SetVCOpen(dm.page1)
-	dm.pc.FlushPage(dm.page1)
+	dm.pageCacher.FlushPage(dm.page1)
 
 	return dm
 }
 
-func Create(path string, mem int64, tm tm.TransactionManager) *dataManager {
-	pc := page_cacher.Create(path, mem)
-	lg := logger.Create(path)
+func Create(path string, mem int64, transactionManager transactionManager.TransactionManager) *dataManager {
+	pageCacher := page_cacher.Create(path, mem)
+	logger := logger.Create(path)
 
-	dm := newDataManager(pc, lg, tm)
+	dm := newDataManager(pageCacher, logger, transactionManager)
 	dm.initPage1()
 
 	return dm
@@ -85,13 +85,13 @@ func Create(path string, mem int64, tm tm.TransactionManager) *dataManager {
 
 // fillPageFreeManager 构建pindex
 func (dm *dataManager) fillPageFreeManager() {
-	noPages := dm.pc.NoPages()
+	noPages := dm.pageCacher.NoPages()
 	for i := 2; i <= noPages; i++ {
-		pg, err := dm.pc.GetPage(page_cacher.PageNum(i))
+		pg, err := dm.pageCacher.GetPage(page_cacher.PageNum(i))
 		if err != nil {
 			panic(err)
 		}
-		dm.pidx.Add(pg.PageNum(), PageXFreeSpace(pg))
+		dm.pageFreeManager.Add(pg.PageNum(), PageXFreeSpace(pg))
 		pg.Release()
 	}
 }
@@ -99,7 +99,7 @@ func (dm *dataManager) fillPageFreeManager() {
 // loadAndCheckPage1 在OpenDB的时候读入page1, 并检验其正确性.
 func (dm *dataManager) loadAndCheckPage1() bool {
 	var err error
-	dm.page1, err = dm.pc.GetPage(1)
+	dm.page1, err = dm.pageCacher.GetPage(1)
 	if err != nil {
 		panic(err)
 	}
@@ -108,29 +108,29 @@ func (dm *dataManager) loadAndCheckPage1() bool {
 
 // initPage1 在CreateDB的时候用于初始化page1.
 func (dm *dataManager) initPage1() {
-	pgno := dm.pc.NewPage(P1InitRaw())
+	pgno := dm.pageCacher.NewPage(P1InitRaw())
 	utils.Assert(pgno == 1)
 	var err error
-	dm.page1, err = dm.pc.GetPage(pgno)
+	dm.page1, err = dm.pageCacher.GetPage(pgno)
 	if err != nil {
 		panic(err)
 	}
 
-	dm.pc.FlushPage(dm.page1)
+	dm.pageCacher.FlushPage(dm.page1)
 }
 
 func (dm *dataManager) Close() {
 	//	TODO: 如果还有事务正在进行, 直接Close或许会出错.
-	dm.dic.Close()
-	dm.lg.Close()
+	dm.dataitemCacher.Close()
+	dm.logger.Close()
 
 	// 关于page1的操作一定要在Close中被最后执行.
 	P1SetVCClose(dm.page1)
 	dm.page1.Release()
-	dm.pc.Close()
+	dm.pageCacher.Close()
 }
 
-func (dm *dataManager) Insert(xid tm.TransactionID, data []byte) (utils.UUID, error) {
+func (dm *dataManager) Insert(xid transactionManager.TransactionID, data []byte) (utils.UUID, error) {
 	/*
 		第一步: 将data包裹成dataitem raw.
 				并检测raw长度是不是过长.
@@ -152,30 +152,30 @@ func (dm *dataManager) Insert(xid tm.TransactionID, data []byte) (utils.UUID, er
 	var err error
 	for try := 0; try < 5; try++ {
 		var ok bool
-		pgno, freeSpace, ok = dm.pidx.Select(len(raw))
+		pgno, freeSpace, ok = dm.pageFreeManager.Select(len(raw))
 		if ok == true {
 			break
 		} else {
 			// 创建新页, 并将新页加入到pindex, 以待下次选择.
-			newPgno := dm.pc.NewPage(PageXInitRaw())
-			dm.pidx.Add(newPgno, PageXMaxFreeSpace())
+			newPgno := dm.pageCacher.NewPage(PageXInitRaw())
+			dm.pageFreeManager.Add(newPgno, PageXMaxFreeSpace())
 		}
 	}
 	if pgno == 0 { // 选择失败, 返回ErrBusy
 		return 0, ErrBusy
 	}
-	defer func() { // 该函数用于将pgno重新插回pidx
+	defer func() { // 该函数用于将pgno重新插回pageFreeManager
 		if pg != nil {
-			dm.pidx.Add(pgno, PageXFreeSpace(pg))
+			dm.pageFreeManager.Add(pgno, PageXFreeSpace(pg))
 		} else {
-			dm.pidx.Add(pgno, freeSpace)
+			dm.pageFreeManager.Add(pgno, freeSpace)
 		}
 	}()
 
 	/*
 		第三步: 获得该页的Page实例
 	*/
-	pg, err = dm.pc.GetPage(pgno)
+	pg, err = dm.pageCacher.GetPage(pgno)
 	if err != nil {
 		return 0, err
 	}
@@ -184,7 +184,7 @@ func (dm *dataManager) Insert(xid tm.TransactionID, data []byte) (utils.UUID, er
 		第四步: 做日志.
 	*/
 	log := InsertLog(xid, pg, raw)
-	dm.lg.Log(log)
+	dm.logger.Log(log)
 
 	/*
 		第五步: 将内容插入到该页内, 并返回插入的位移.
@@ -199,7 +199,7 @@ func (dm *dataManager) Insert(xid tm.TransactionID, data []byte) (utils.UUID, er
 }
 
 func (dm *dataManager) Read(uid utils.UUID) (DataItem, bool, error) {
-	h, err := dm.dic.Get(uid)
+	h, err := dm.dataitemCacher.Get(uid)
 	if err != nil {
 		return nil, false, err
 	}
@@ -214,7 +214,7 @@ func (dm *dataManager) Read(uid utils.UUID) (DataItem, bool, error) {
 
 func (dm *dataManager) getForCacher(uid utils.UUID) (interface{}, error) {
 	pgno, offset := UUID2Address(uid)
-	pg, err := dm.pc.GetPage(pgno)
+	pg, err := dm.pageCacher.GetPage(pgno)
 	if err != nil {
 		return nil, err
 	}
@@ -223,15 +223,15 @@ func (dm *dataManager) getForCacher(uid utils.UUID) (interface{}, error) {
 
 func (dm *dataManager) releaseForCacher(h interface{}) {
 	di := h.(*dataItem)
-	di.pg.Release()
+	di.pageCacher.Release()
 }
 
 // logDataitem 为di生成Update日志.
-func (dm *dataManager) logDataitem(xid tm.TransactionID, di *dataItem) {
+func (dm *dataManager) logDataitem(xid transactionManager.TransactionID, di *dataItem) {
 	log := UpdateLog(xid, di)
-	dm.lg.Log(log)
+	dm.logger.Log(log)
 }
 
 func (dm *dataManager) ReleaseDataitem(di *dataItem) {
-	dm.dic.Release(di.uid)
+	dm.dataitemCacher.Release(di.uid)
 }

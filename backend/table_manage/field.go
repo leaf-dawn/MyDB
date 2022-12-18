@@ -20,7 +20,7 @@ var (
 
 type field struct {
 	SelfUUID utils.UUID
-	tb       *table
+	table    *table
 
 	FName string
 	FType string
@@ -33,14 +33,14 @@ type field struct {
 	panic的原因和LoadTable类似.
 */
 func LoadField(tb *table, uuid utils.UUID) *field {
-	raw, ok, err := tb.TBM.SM.Read(tm.SUPER_TRANSACTION_ID, uuid)
+	raw, ok, err := tb.TableManager.SerializabilityManager.Read(tm.SUPER_TRANSACTION_ID, uuid)
 	utils.Assert(ok)
 	if err != nil {
 		panic(err)
 	}
 	f := &field{
 		SelfUUID: uuid,
-		tb:       tb,
+		table:    tb,
 	}
 	f.parseSelf(raw)
 	return f
@@ -55,7 +55,7 @@ func (f *field) parseSelf(raw []byte) {
 	f.index = utils.ParseUUID(raw[pos:])
 	if f.index != utils.NilUUID {
 		var err error
-		f.bt, err = im.Load(f.index, f.tb.TBM.DM)
+		f.bt, err = im.Load(f.index, f.table.TableManager.DataManager)
 		if err != nil {
 			panic(err)
 		}
@@ -69,18 +69,18 @@ func CreateField(tb *table, xid tm.TransactionID, fname, ftype string, indexed b
 	}
 
 	f := &field{
-		tb:    tb,
+		table: tb,
 		FName: fname,
 		FType: ftype,
 		index: utils.NilUUID,
 	}
 
 	if indexed {
-		index, err := im.Create(tb.TBM.DM)
+		index, err := im.Create(tb.TableManager.DataManager)
 		if err != nil {
 			return nil, err
 		}
-		bt, err := im.Load(index, tb.TBM.DM)
+		bt, err := im.Load(index, tb.TableManager.DataManager)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func (f *field) persistSelf(xid tm.TransactionID) error {
 	raw := utils.VarStrToRaw(f.FName)
 	raw = append(raw, utils.VarStrToRaw(f.FType)...)
 	raw = append(raw, utils.UUIDToRaw(f.index)...)
-	self, err := f.tb.TBM.SM.Insert(xid, raw)
+	self, err := f.table.TableManager.SerializabilityManager.Insert(xid, raw)
 	if err != nil {
 		return err
 	}

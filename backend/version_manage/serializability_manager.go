@@ -36,21 +36,21 @@ type SerializabilityManager interface {
 }
 
 type serializabilityManager struct {
-	TM                tm.TransactionManager
-	DM                dm.DataManager
-	entryCacher       cacher.Cacher                        // entry的缓存
-	transactionCacher map[tm.TransactionID]*tm.Transaction // 运行时事务的缓存
-	lock              sync.Mutex
+	TransactionManager tm.TransactionManager
+	DataManager        dm.DataManager
+	entryCacher        cacher.Cacher                        // entry的缓存
+	transactionCacher  map[tm.TransactionID]*tm.Transaction // 运行时事务的缓存
+	lock               sync.Mutex
 
 	lockTable locktable.LockTable
 }
 
 func NewSerializabilityManager(tm0 tm.TransactionManager, dm dm.DataManager) *serializabilityManager {
 	sm := &serializabilityManager{
-		TM:                tm0,
-		DM:                dm,
-		transactionCacher: make(map[tm.TransactionID]*tm.Transaction),
-		lockTable:         locktable.NewLockTable(),
+		TransactionManager: tm0,
+		DataManager:        dm,
+		transactionCacher:  make(map[tm.TransactionID]*tm.Transaction),
+		lockTable:          locktable.NewLockTable(),
 	}
 	//
 	options := new(cacher.Options)
@@ -70,7 +70,7 @@ func (sm *serializabilityManager) Begin(level int) tm.TransactionID {
 	sm.lock.Lock()
 	defer sm.lock.Unlock()
 	// 启动一个事务，获取事务id
-	transactionID := sm.TM.Begin()
+	transactionID := sm.TransactionManager.Begin()
 	// 创建一个事务，并拍快照
 	t := tm.NewTransaction(transactionID, level, sm.transactionCacher)
 	// 添加当前事务到事务缓存上
@@ -91,7 +91,7 @@ func (sm *serializabilityManager) Insert(transactionID tm.TransactionID, data []
 	//创建entry
 	raw := WrapEntryRaw(transactionID, data)
 	//添加
-	return sm.DM.Insert(transactionID, raw)
+	return sm.DataManager.Insert(transactionID, raw)
 }
 
 // Commit 提交一个事务
@@ -109,7 +109,7 @@ func (sm *serializabilityManager) Commit(transactionID tm.TransactionID) error {
 	sm.lock.Unlock()
 
 	sm.lockTable.Remove(utils.UUID(transactionID))
-	sm.TM.Commit(transactionID)
+	sm.TransactionManager.Commit(transactionID)
 	return nil
 }
 
@@ -136,7 +136,7 @@ func (sm *serializabilityManager) Read(transactionID tm.TransactionID, uuid util
 	defer e.Release()
 
 	// 检验是否有效
-	if IsVisible(sm.TM, t, e) {
+	if IsVisible(sm.TransactionManager, t, e) {
 		return e.Data(), true, nil
 	} else {
 		return nil, false, nil
@@ -165,7 +165,7 @@ func (sm *serializabilityManager) Delete(transactionID tm.TransactionID, uuid ut
 	e := handle.(*entry)
 	defer e.Release()
 
-	if IsVisible(sm.TM, t, e) == false { // 如果本身对其不可见, 则直接返回
+	if IsVisible(sm.TransactionManager, t, e) == false { // 如果本身对其不可见, 则直接返回
 		return false, nil
 	}
 
@@ -184,7 +184,7 @@ func (sm *serializabilityManager) Delete(transactionID tm.TransactionID, uuid ut
 	}
 
 	// 获得锁后, 还得进行版本跳跃检查
-	skip := IsVersionSkip(sm.TM, t, e)
+	skip := IsVersionSkip(sm.TransactionManager, t, e)
 	if skip == true {
 		t.Err = ErrCannotSR
 		sm.abort(transactionID, true) // 自动撤销
@@ -210,7 +210,7 @@ func (sm *serializabilityManager) abort(transactionID tm.TransactionID, auto boo
 	}
 
 	sm.lockTable.Remove(utils.UUID(transactionID))
-	sm.TM.Abort(transactionID)
+	sm.TransactionManager.Abort(transactionID)
 }
 
 func (sm *serializabilityManager) Abort(transactionID tm.TransactionID) {

@@ -31,23 +31,23 @@ type TableManager interface {
 }
 
 type tableManager struct {
-	DM dm.DataManager
-	SM sm.SerializabilityManager
+	DataManager            dm.DataManager
+	SerializabilityManager sm.SerializabilityManager
 
 	booter booter.Booter
 
-	tc   map[string]*table             // 表缓存
-	xtc  map[tm.TransactionID][]*table // xid 创建了哪些表
-	lock sync.Mutex
+	tableCacher        map[string]*table             // 表缓存
+	transactionIDTable map[tm.TransactionID][]*table // xid 创建了哪些表
+	lock               sync.Mutex
 }
 
 func newTableManager(sm sm.SerializabilityManager, dm dm.DataManager, booter booter.Booter) *tableManager {
 	tbm := &tableManager{
-		DM:     dm,
-		SM:     sm,
-		booter: booter,
-		tc:     make(map[string]*table),
-		xtc:    make(map[tm.TransactionID][]*table),
+		DataManager:            dm,
+		SerializabilityManager: sm,
+		booter:                 booter,
+		tableCacher:            make(map[string]*table),
+		transactionIDTable:     make(map[tm.TransactionID][]*table),
 	}
 
 	tbm.loadTables()
@@ -71,7 +71,7 @@ func (tbm *tableManager) loadTables() {
 	for uuid != utils.NilUUID {
 		tb := LoadTable(tbm, uuid)
 		uuid = tb.Next
-		tbm.tc[tb.Name] = tb
+		tbm.tableCacher[tb.Name] = tb
 	}
 }
 
@@ -87,7 +87,7 @@ func (tbm *tableManager) updateFirstTableUUID(uuid utils.UUID) {
 
 func (tbm *tableManager) Read(xid tm.TransactionID, read *statement.Read) ([]byte, error) {
 	tbm.lock.Lock()
-	tb, ok := tbm.tc[read.TableName]
+	tb, ok := tbm.tableCacher[read.TableName]
 	tbm.lock.Unlock()
 	if ok == false {
 		return nil, ErrNoThatTable
@@ -102,7 +102,7 @@ func (tbm *tableManager) Read(xid tm.TransactionID, read *statement.Read) ([]byt
 
 func (tbm *tableManager) Update(xid tm.TransactionID, update *statement.Update) ([]byte, error) {
 	tbm.lock.Lock()
-	tb, ok := tbm.tc[update.TableName]
+	tb, ok := tbm.tableCacher[update.TableName]
 	tbm.lock.Unlock()
 	if ok == false {
 		return nil, ErrNoThatTable
@@ -117,7 +117,7 @@ func (tbm *tableManager) Update(xid tm.TransactionID, update *statement.Update) 
 
 func (tbm *tableManager) Delete(xid tm.TransactionID, delete *statement.Delete) ([]byte, error) {
 	tbm.lock.Lock()
-	tb, ok := tbm.tc[delete.TableName]
+	tb, ok := tbm.tableCacher[delete.TableName]
 	tbm.lock.Unlock()
 	if ok == false {
 		return nil, ErrNoThatTable
@@ -132,7 +132,7 @@ func (tbm *tableManager) Delete(xid tm.TransactionID, delete *statement.Delete) 
 
 func (tbm *tableManager) Insert(xid tm.TransactionID, insert *statement.Insert) ([]byte, error) {
 	tbm.lock.Lock()
-	tb, ok := tbm.tc[insert.TableName]
+	tb, ok := tbm.tableCacher[insert.TableName]
 	tbm.lock.Unlock()
 	if ok == false {
 		return nil, ErrNoThatTable
@@ -149,7 +149,7 @@ func (tbm *tableManager) Create(xid tm.TransactionID, create *statement.Create) 
 	tbm.lock.Lock()
 	defer tbm.lock.Unlock()
 
-	_, ok := tbm.tc[create.TableName]
+	_, ok := tbm.tableCacher[create.TableName]
 	if ok == true { // 已经存在
 		return nil, ErrDuplicatedTable
 	}
@@ -160,8 +160,8 @@ func (tbm *tableManager) Create(xid tm.TransactionID, create *statement.Create) 
 		return nil, err
 	} else { // 创建成功
 		tbm.updateFirstTableUUID(tb.SelfUUID)
-		tbm.tc[create.TableName] = tb
-		tbm.xtc[xid] = append(tbm.xtc[xid], tb)
+		tbm.tableCacher[create.TableName] = tb
+		tbm.transactionIDTable[xid] = append(tbm.transactionIDTable[xid], tb)
 		return []byte("create " + create.TableName), nil
 	}
 }
@@ -173,13 +173,13 @@ func (tbm *tableManager) Show(xid tm.TransactionID) []byte {
 	tbm.lock.Lock()
 	defer tbm.lock.Unlock()
 	var results []byte
-	for _, t := range tbm.tc { // 打印已经提交的表
+	for _, t := range tbm.tableCacher { // 打印已经提交的表
 		tPrint := t.Print()
 		results = append(results, tPrint...)
 		results = append(results, '\n')
 	}
 
-	for _, t := range tbm.xtc[xid] { // 打印它自己创建的表
+	for _, t := range tbm.transactionIDTable[xid] { // 打印它自己创建的表
 		tPrint := t.Print()
 		results = append(results, tPrint...)
 		results = append(results, '\n')
@@ -193,12 +193,12 @@ func (tbm *tableManager) Begin(begin *statement.Begin) (tm.TransactionID, []byte
 	if begin.IsRepeatableRead {
 		level = 1
 	}
-	xid := tbm.SM.Begin(level)
+	xid := tbm.SerializabilityManager.Begin(level)
 	return xid, []byte("begin")
 }
 
 func (tbm *tableManager) Commit(xid tm.TransactionID) ([]byte, error) {
-	err := tbm.SM.Commit(xid)
+	err := tbm.SerializabilityManager.Commit(xid)
 	if err != nil {
 		return nil, err
 	}
@@ -206,6 +206,6 @@ func (tbm *tableManager) Commit(xid tm.TransactionID) ([]byte, error) {
 }
 
 func (tbm *tableManager) Abort(xid tm.TransactionID) []byte {
-	tbm.SM.Abort(xid)
+	tbm.SerializabilityManager.Abort(xid)
 	return []byte("abort")
 }
